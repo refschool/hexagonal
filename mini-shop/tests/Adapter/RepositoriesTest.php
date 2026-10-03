@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+use App\Adapter\Out\InMemory\{InMemoryProductRepository, InMemoryCartRepository, InMemoryOrderRepository};
+use App\Domain\{Cart, Order, OrderItem};
+$products = new InMemoryProductRepository();
+check(count($products->findAll()) === 4, 'Catalogue');
+check($products->findById('1')->price->cents === 7900, 'Recherche produit');
+check($products->findById('absent') === null, 'Produit absent');
+$carts = new InMemoryCartRepository();
+$cart = $carts->get();
+$cart->addProduct($products->findById('1'), 2);
+check($carts->get()->isEmpty(), 'Isolation avant sauvegarde');
+$carts->save($cart);
+$cart->clear();
+check($carts->get()->total()->cents === 15800, 'Sauvegarde panier');
+$orders = new InMemoryOrderRepository();
+$order = new Order($orders->nextIdentity(), [new OrderItem('1', 'Clavier', new App\Domain\Money(7900), 2)], new DateTimeImmutable());
+$orders->save($order);
+check($orders->findById($order->id) === $order && count($orders->findAll()) === 1, 'Sauvegarde commande');
+check($orders->findById('absente') === null, 'Commande absente');
