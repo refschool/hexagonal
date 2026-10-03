@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+use App\Domain\{Product, Money, Cart, Order};
+rejects(fn () => new Product('1', '', new Money(1)));
+rejects(fn () => new Product('1', 'Clavier', new Money(0)));
+rejects(fn () => new Money(-1));
+$cart = new Cart();
+rejects(fn () => $cart->addProduct($product, 0));
+$cart->addProduct($product, 2);
+$cart->addProduct($product);
+check($cart->items()[0]->quantity === 3, 'Fusion des quantités');
+$cart->updateQuantity('1', 2);
+check($cart->total()->cents === 15800, 'Total panier');
+rejects(fn () => $cart->updateQuantity('1', 0));
+$cart->removeProduct('1');
+check($cart->isEmpty(), 'Suppression');
+$cart->addProduct($product);
+$cart->clear();
+check($cart->isEmpty(), 'Vidage');
+rejects(fn () => new Order('2', [], new DateTimeImmutable()));

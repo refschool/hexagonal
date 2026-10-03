@@ -12,6 +12,7 @@ final readonly class OrderItem
         public Money $unitPrice,
         public int $quantity,
     ) {
+        if ($quantity < 1) { throw new \InvalidArgumentException("Quantité invalide."); }
         $this->lineTotal = $unitPrice->multiply($quantity);
     }
 }

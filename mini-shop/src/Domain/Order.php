@@ -10,6 +10,7 @@ final readonly class Order
     /** @param list<OrderItem> $items */
     public function __construct(public string $id, public array $items, public \DateTimeImmutable $createdAt)
     {
+        if ($items === []) { throw new \DomainException("Panier vide."); }
         $this->status = 'CREATED';
         $total = new Money(0);
         foreach ($items as $item) { $total = $total->add($item->lineTotal); }
