@@ -21,25 +21,65 @@ Ouvrir http://localhost:8000. Le serveur PHP de développement est destiné au T
 - **Adapter/In/Web** : contrôleurs, routes, validation HTTP, réponses, rendu HTML et pont de session. Les erreurs métier deviennent des réponses 400 ; les produits et commandes absents des réponses 404. Les formulaires POST redirigent en 303.
 - **Composition Root** : `src/CompositionRoot.php` instancie les repositories, les cas d'utilisation et les contrôleurs. `public/index.php` démarre la session, appelle le routeur et envoie la réponse.
 
-```text
-                Browser
-                   |
-                   v
-             Web Adapter
-                   |
-                   v
-               Use Cases
-                   |
-          +--------+--------+------------------+
-          |                 |                  |
-          v                 v                  v
- ProductRepository    CartRepository    OrderRepository
-          ^                 ^                  ^
-          |                 |                  |
-     InMemory Adapter  InMemory Adapter   InMemory Adapter
+```mermaid
+flowchart LR
+    browser["Navigateur"] --> entry["public/index.php"]
+
+    subgraph web["Adaptateur entrant · src/Adapter/In/Web"]
+        router["Router · routes GET et POST"]
+        productController["ProductController"]
+        cartController["CartController"]
+        orderController["OrderController"]
+        view["View + templates/ + Response"]
+        session["SessionState"]
+        router --> productController & cartController & orderController
+        productController & cartController & orderController --> view
+    end
+
+    subgraph core["Cœur de l'application"]
+        subgraph usecases["Application · cas d'utilisation"]
+            products["ListProducts · GetProduct"]
+            cart["ViewCart · AddProductToCart<br/>UpdateCartQuantity · RemoveProductFromCart"]
+            orders["ListOrders · GetOrder · CreateOrder"]
+        end
+        subgraph domain["Domain · règles et modèles"]
+            models["Product · Money · Cart · CartItem<br/>Order · OrderItem"]
+        end
+        subgraph ports["Port/Out · interfaces"]
+            productPort["ProductRepository"]
+            cartPort["CartRepository"]
+            orderPort["OrderRepository"]
+        end
+    end
+
+    subgraph memory["Adaptateurs sortants · src/Adapter/Out/InMemory"]
+        productRepo["InMemoryProductRepository<br/>catalogue de 4 produits"]
+        cartRepo["InMemoryCartRepository"]
+        orderRepo["InMemoryOrderRepository"]
+    end
+
+    phpSession["Session PHP · panier et commandes"]
+    wiring["CompositionRoot · assemblage des dépendances"]
+
+    entry --> router
+    productController --> products
+    cartController --> cart
+    orderController --> orders
+    products --> productPort
+    cart --> productPort & cartPort
+    orders --> cartPort & orderPort
+    products & cart & orders --> models
+    productPort -. "implémenté par" .-> productRepo
+    cartPort -. "implémenté par" .-> cartRepo
+    orderPort -. "implémenté par" .-> orderRepo
+    entry --> session
+    phpSession <--> session
+    session <--> cartRepo & orderRepo
+    entry -. "instancie" .-> wiring
+    wiring -. "relie contrôleurs, cas d'utilisation et repositories" .-> router
 ```
 
-Le cœur dépend des abstractions ; les dépendances pointent vers le domaine.
+Les flèches pleines montrent les appels et les échanges d'état. Les flèches pointillées montrent l'implémentation des ports et l'assemblage par `CompositionRoot` ; les interfaces du cœur ne dépendent pas des classes `InMemory`. Les contrôleurs appellent directement `execute()` : il n'y a pas d'interface de port entrant distincte dans ce projet.
 
 ## InMemory et HTTP
 
