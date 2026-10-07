@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 use App\CompositionRoot;
-$app = new CompositionRoot();
+use App\Adapter\Out\InMemory\InMemoryProductRepository;
+$products = new InMemoryProductRepository();
+$app = new CompositionRoot(productRepository: $products);
 foreach (['/', '/products', '/products/1', '/cart', '/orders'] as $path) {
     check($app->router->dispatch('GET', $path)->status === 200, 'GET ' . $path);
 }
@@ -19,5 +21,5 @@ $response = $app->router->dispatch('POST', '/orders');
 check($response->status === 303 && str_starts_with($response->headers['Location'], '/orders/'), 'Commande redirection');
 check(str_contains($app->router->dispatch('GET', '/cart')->body, 'Votre panier est vide'), 'Panier vidé HTML');
 check(str_contains($app->router->dispatch('GET', $response->headers['Location'])->body, '276,00'), 'Commande détail HTML');
-$restored = new CompositionRoot(unserialize(serialize($app->carts->get())), unserialize(serialize($app->orders->findAll())));
+$restored = new CompositionRoot(unserialize(serialize($app->carts->get())), unserialize(serialize($app->orders->findAll())), $products);
 check(count($restored->orders->findAll()) === 1 && $restored->carts->get()->isEmpty(), 'Réhydratation état');

@@ -3,7 +3,8 @@
     "description": "Mini e-commerce p\u00e9dagogique en PHP pur et architecture hexagonale.",
     "type": "project",
     "require": {
-        "php": ">=8.3"
+        "php": ">=8.3",
+        "ext-pdo_sqlite": "*"
     },
     "autoload": {
         "psr-4": {
